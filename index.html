@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dine gode sider – flashcards</title>
+<style>
+:root{
+  --bg:#e9f0f4; --surface:#ffffff; --ink:#14394b; --muted:#5b7280; --line:#cfdbe2;
+  --c-egen:#e8851a; --c-ord:#2a7db8; --c-set:#2e8b57; --c-spm:#d64545;
+  --accent:var(--c-egen);
+  --shadow:0 24px 50px -22px rgba(20,57,75,.45);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0e2430; --surface:#17394a; --ink:#f2f7fa; --muted:#9db4c0; --line:#2b4f61; --shadow:0 24px 50px -22px rgba(0,0,0,.7)}
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:20px 16px 28px}
+.wrap{width:100%;max-width:560px}
+h1{font-size:1.5rem;margin:4px 0 14px;letter-spacing:-.01em}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;font:inherit;font-size:.95rem;cursor:pointer;display:flex;align-items:center;gap:8px}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--dot,var(--muted))}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.status{display:flex;justify-content:space-between;align-items:center;font-size:.95rem;color:var(--muted);margin-bottom:8px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:18px}
+.bar span{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .35s ease}
+button{font:inherit}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.scene{perspective:1400px;position:relative}
+.card{position:relative;width:100%;height:340px;border:0;padding:0;background:none;cursor:pointer;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.3,.7,.2,1);text-align:left;display:block}
+.card.flip{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:28px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:26px;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.front{background:var(--accent);color:#fff}
+.back{background:var(--surface);transform:rotateY(180deg);border:2px solid var(--accent)}
+.tag{align-self:flex-start;font-size:.85rem;font-weight:600;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.22)}
+.back .tag{background:var(--accent);color:#fff}
+.main{flex:1;display:flex;align-items:center}
+.front .main{font-size:2.3rem;font-weight:700;line-height:1.15;letter-spacing:-.015em}
+.front .main.long{font-size:1.65rem}
+.hint{font-size:.9rem;opacity:.85}
+.back .def{font-size:1.45rem;font-weight:650;line-height:1.3;margin:18px 0 14px}
+.back .ex{font-size:1.1rem;line-height:1.45;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.back .ex b{color:var(--ink);font-weight:600}
+.say{position:absolute;right:16px;top:16px;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;background:#fff;color:#14394b;box-shadow:0 4px 12px rgba(0,0,0,.18);display:grid;place-items:center;z-index:2}
+.say svg{width:22px;height:22px;fill:currentColor}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.act{border:0;border-radius:18px;padding:16px;font-size:1.05rem;font-weight:650;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.act small{font-weight:500;opacity:.8;font-size:.8rem}
+.again{background:var(--surface);color:var(--ink);border:2px solid var(--line)}
+.know{background:var(--ink);color:var(--bg)}
+.tools{display:flex;justify-content:center;gap:18px;margin-top:16px}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:.95rem;padding:6px}
+.done{background:var(--surface);border-radius:28px;padding:36px 26px;text-align:center;box-shadow:var(--shadow)}
+.done h2{margin:0 0 8px;font-size:1.8rem}
+.done p{color:var(--muted);margin:0 0 22px;font-size:1.1rem}
+.done .act{margin:0 auto;padding:16px 28px;flex-direction:row}
+[hidden]{display:none!important}
+@media (max-width:420px){.card{height:320px}.front .main{font-size:2rem}}
+@media (prefers-reduced-motion:reduce){.card,.bar span{transition:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Dine gode sider: flashcards</h1>
+  <div class="chips" id="chips" role="group" aria-label="Velg kategori"></div>
+
+  <div id="game">
+    <div class="status"><span id="count"></span><span id="known"></span></div>
+    <div class="bar" aria-hidden="true"><span id="fill"></span></div>
+    <div class="scene">
+      <button class="card" id="card" aria-label="Snu kortet">
+        <div class="face front">
+          <span class="tag" id="ftag"></span>
+          <div class="main" id="fmain"></div>
+          <div class="hint">Trykk for å se svaret</div>
+        </div>
+        <div class="face back">
+          <span class="tag" id="btag"></span>
+          <div class="def" id="bdef"></div>
+          <div class="ex" id="bex"></div>
+        </div>
+      </button>
+      <button class="say" id="say" aria-label="Les opp på norsk" style="position:absolute;right:16px;top:16px">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>
+      </button>
+    </div>
+    <div class="actions">
+      <button class="act again" id="again">Øv mer<small>← pil venstre</small></button>
+      <button class="act know" id="knowBtn">Jeg kan den<small>pil høyre →</small></button>
+    </div>
+    <div class="tools">
+      <button class="link" id="shuffle">Bland kortene</button>
+      <button class="link" id="restart">Start på nytt</button>
+    </div>
+  </div>
+
+  <div class="done" id="done" hidden>
+    <h2>Bra jobba!</h2>
+    <p id="doneText"></p>
+    <button class="act know" id="again2">Øv på nytt</button>
+  </div>
+</main>
+
+<script>
+const CATS = {
+  egen: {name: "Egenskaper", color: "var(--c-egen)"},
+  ord:  {name: "Ord på jobben", color: "var(--c-ord)"},
+  set:  {name: "Si det selv", color: "var(--c-set)"},
+  spm:  {name: "Intervju", color: "var(--c-spm)"}
+};
+
+const CARDS = [
+  // Egenskaper
+  {c:"egen", f:"ansvarsbevisst", d:"Du gjør jobben din og tar ansvar.", e:"Jeg er ansvarsbevisst. Jeg kommer alltid presis."},
+  {c:"egen", f:"selvstendig", d:"Du kan jobbe alene.", e:"Hun er selvstendig. Hun trenger ikke hjelp."},
+  {c:"egen", f:"ryddig", d:"Du holder det pent og ordentlig.", e:"Han er ryddig. Lageret er alltid pent."},
+  {c:"egen", f:"effektiv", d:"Du gjør mye på kort tid.", e:"Jeg er effektiv. Jeg gjør mange oppgaver hver dag."},
+  {c:"egen", f:"rask", d:"Du gjør ting fort.", e:"Jeg er rask til å lære nye ting."},
+  {c:"egen", f:"omsorgsfull", d:"Du bryr deg om andre.", e:"Hun er omsorgsfull. Hun hjelper alle kundene."},
+  {c:"egen", f:"positiv", d:"Du ser det gode i ting og er glad.", e:"Jeg er positiv, også når jeg har mye å gjøre."},
+  {c:"egen", f:"blid", d:"Du smiler og er hyggelig.", e:"Hun er blid mot kundene."},
+  {c:"egen", f:"serviceinnstilt", d:"Du vil gjerne hjelpe kundene.", e:"Jeg er serviceinnstilt. Jeg spør: «Kan jeg hjelpe deg?»"},
+  {c:"egen", f:"kreativ", d:"Du har mange nye ideer.", e:"Jeg er kreativ. Jeg finner løsninger."},
+  {c:"egen", f:"å ta initiativ", d:"Du begynner selv. Du venter ikke på beskjed.", e:"Jeg tar initiativ og rydder lageret."},
+  {c:"egen", f:"å ha mange baller i lufta", d:"Du gjør mange oppgaver samtidig.", e:"Jeg liker å ha mange baller i lufta."},
+  // Ord på jobben
+  {c:"ord", f:"en kunde", d:"En person som kjøper noe i en butikk.", e:"Kunden har kjøpt et nytt bord."},
+  {c:"ord", f:"en arbeidsgiver", d:"Personen eller firmaet som du jobber for. Det er ofte sjefen.", e:"Sjefen til Petter er arbeidsgiveren hans."},
+  {c:"ord", f:"en arbeidstaker", d:"En person som har en jobb.", e:"Petter er arbeidstaker i en møbelbutikk."},
+  {c:"ord", f:"en kollega", d:"En person som jobber sammen med deg.", e:"Petter og kollegaen bærer et bord."},
+  {c:"ord", f:"å samarbeide", d:"Å jobbe sammen med andre.", e:"Jeg liker å samarbeide med kollegene mine."},
+  {c:"ord", f:"en egenskap", d:"Noe som du er. For eksempel: ryddig eller blid.", e:"Hvilke egenskaper har du?"},
+  {c:"ord", f:"en jobbsøknad", d:"Et brev der du søker på en jobb.", e:"Jeg skriver om egenskapene mine i jobbsøknaden."},
+  {c:"ord", f:"et jobbintervju", d:"Et møte der sjefen stiller deg spørsmål.", e:"På jobbintervjuet forteller jeg litt om meg selv."},
+  {c:"ord", f:"kundeservice", d:"Å hjelpe kundene og være hyggelig mot dem.", e:"Jeg er god på kundeservice."},
+  {c:"ord", f:"å løse et problem", d:"Å finne en løsning når noe er vanskelig.", e:"Jeg liker å løse problemer."},
+  // Si det selv
+  {c:"set", f:"Du liker å jobbe sammen med andre. Hva sier du?", d:"Jeg liker å samarbeide med andre.", e:"Du kan også si: <b>Jeg er selvstendig, men jeg liker også å samarbeide.</b>"},
+  {c:"set", f:"Du kan jobbe alene og tar ansvar. Hva sier du?", d:"Jeg er ansvarsbevisst og selvstendig.", e:"Gi et eksempel: <b>På jobben åpnet jeg butikken hver morgen.</b>"},
+  {c:"set", f:"Du holder det pent og gjør mye på kort tid. Hva sier du?", d:"Jeg er ryddig og effektiv.", e:"Gi et eksempel: <b>Jeg ryddet lageret på én time.</b>"},
+  {c:"set", f:"Du hjelper kundene gjerne. Hva sier du?", d:"Jeg liker å gi god service til kundene. Jeg er god på kundeservice.", e:"Eller kort: <b>Jeg er blid og serviceinnstilt.</b>"},
+  {c:"set", f:"Du gjør oppgaver uten å få beskjed. Hva sier du?", d:"Jeg tar initiativ og løser oppgaver når de kommer.", e:"Start slik: <b>Jeg tar initiativ …</b>"},
+  {c:"set", f:"Du liker å gjøre mange ting samtidig. Hva sier du?", d:"Jeg liker å ha mange baller i lufta.", e:"Det betyr: <b>Jeg gjør mange oppgaver samtidig.</b>"},
+  {c:"set", f:"Du har mange ideer og liker problemer. Hva sier du?", d:"Jeg er kreativ, og jeg liker å løse problemer.", e:"Gi et eksempel: <b>Jeg fant en ny måte å pakke varene på.</b>"},
+  // Intervju
+  {c:"spm", f:"Hvordan liker du å samarbeide med andre?", d:"Jeg liker å samarbeide. Jeg hjelper kollegene mine.", e:"Dette spørsmålet får du ofte på <b>jobbintervju</b>."},
+  {c:"spm", f:"Hvilke egenskaper har du?", d:"Jeg er … og jeg er …", e:"Eksempel: <b>Jeg er ryddig og effektiv. Jeg liker å jobbe med kunder.</b>"},
+  {c:"spm", f:"Hvorfor snakker sjefen med kunden?", d:"Sjefen vil at kunden skal være fornøyd.", e:"Sjefen bruker egenskapen <b>serviceinnstilt</b>."},
+  {c:"spm", f:"Hva samarbeider Petter og kollegene om?", d:"De bærer et bord sammen.", e:"De samarbeider om å <b>levere bordet til kunden</b>."},
+  {c:"spm", f:"Hvilke yrker tror du kan passe for deg?", d:"Jeg tror at jeg passer som … fordi jeg er …", e:"Eksempel: <b>Jeg passer som butikkmedarbeider fordi jeg er blid.</b>"},
+  {c:"spm", f:"Gi to eksempler på hvordan du har samarbeidet.", d:"På jobben … På skolen …", e:"Eksempel: <b>På skolen jobbet jeg i en gruppe. Vi laget en plakat.</b>"}
+];
+
+const $ = id => document.getElementById(id);
+let active = new Set(Object.keys(CATS));
+let queue = [], total = 0, known = 0, flipped = false;
+
+function buildChips(){
+  const box = $("chips");
+  Object.entries(CATS).forEach(([k, v]) => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.style.setProperty("--dot", v.color);
+    b.setAttribute("aria-pressed", "true");
+    b.innerHTML = `<i></i>${v.name}`;
+    b.onclick = () => {
+      if (active.has(k)) { if (active.size === 1) return; active.delete(k); } else active.add(k);
+      b.setAttribute("aria-pressed", active.has(k));
+      start();
+    };
+    box.appendChild(b);
+  });
+}
+
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+function start(){
+  queue = shuffle(CARDS.filter(c => active.has(c.c)));
+  total = queue.length; known = 0;
+  $("game").hidden = false; $("done").hidden = true;
+  show();
+}
+
+function show(){
+  if (!queue.length) { finish(); return; }
+  const c = queue[0], cat = CATS[c.c];
+  flipped = false; $("card").classList.remove("flip");
+  document.documentElement.style.setProperty("--accent", cat.color);
+  $("ftag").textContent = cat.name; $("btag").textContent = cat.name;
+  const fm = $("fmain"); fm.textContent = c.f; fm.classList.toggle("long", c.f.length > 28);
+  $("bdef").textContent = c.d; $("bex").innerHTML = c.e;
+  $("count").textContent = `${known} av ${total} kan jeg`;
+  $("known").textContent = `${queue.length} igjen`;
+  $("fill").style.width = (known / total * 100) + "%";
+}
+
+function finish(){
+  $("game").hidden = true; $("done").hidden = false;
+  $("doneText").textContent = `Du kan alle ${total} kortene.`;
+  document.documentElement.style.setProperty("--accent", "var(--c-egen)");
+}
+
+function flip(){ flipped = !flipped; $("card").classList.toggle("flip", flipped); }
+function again(){ queue.push(queue.shift()); show(); }
+function knowIt(){ queue.shift(); known++; show(); }
+
+function say(){
+  try {
+    const c = queue[0]; if (!c) return;
+    const text = flipped ? c.d : c.f;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = "nb-NO"; u.rate = .85;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+$("card").onclick = flip;
+$("again").onclick = again; $("knowBtn").onclick = knowIt;
+$("say").onclick = say;
+$("shuffle").onclick = () => { shuffle(queue); show(); };
+$("restart").onclick = start; $("again2").onclick = start;
+document.addEventListener("keydown", e => {
+  if ($("game").hidden) return;
+  if (e.key === "ArrowLeft") again();
+  else if (e.key === "ArrowRight") knowIt();
+  else if ((e.key === " " || e.key === "Enter") && document.activeElement.tagName !== "BUTTON") { e.preventDefault(); flip(); }
+});
+
+buildChips(); start();
+</script>
+</body>
+</html>
